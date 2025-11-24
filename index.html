@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Ministerstwo Finansów — Mockup (prototyp)</title>
+  <meta name="description" content="Prototyp strony Ministerstwa Finansów — struktura, funkcje, e-usługi, dokumenty i panel administracyjny (mock)." />
+  <!--
+    INSTRUKCJE: Ten plik HTML jest kompletnym, samodzielnym mockupem strony Ministerstwa Finansów.
+    - Znajdziesz tutaj przykładowe sekcje: Budżet, Podatki, Dokumenty, e-Usługi, Aktualności, Kontakt, BIP.
+    - W pliku są rozbudowane komentarze (PL), które wyjaśniają jak dopasować zawartość, podłączyć API, lub przenieść do frameworka.
+    - Skrypty są wyłącznie demonstracyjne (używają localStorage i mock danych). Zastąp fetch() prawdziwymi endpointami backendowymi.
+    - Uwaga dot. dostępności: użyto nagłówków semantycznych, aria-* i kontrastów. Dostosuj style do oficjalnego brandingu.
+  -->
+
+  <!-- CDNy (Chart.js do wykresu budżetu, ikonki FontAwesome) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    /* --- Prosty reset i typografia --- */
+    :root{
+      --brand:#0a2342;      /* granat */
+      --accent:#0070a6;     /* akcent */
+      --muted:#6b7280;
+      --bg:#f7f9fb;
+      --card:#ffffff;
+      --danger:#b91c1c;
+      --success:#166534;
+      --radius:12px;
+      --glass: rgba(255,255,255,0.6);
+      color-scheme: light;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#111}
+
+    header{background:linear-gradient(180deg,var(--brand),#0f3b60); color:white; padding:18px 1rem}
+    .container{max-width:1100px;margin:0 auto;padding:18px}
+
+    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:12px;align-items:center}
+    .brand .logo{width:56px;height:56px;border-radius:8px;background:linear-gradient(135deg,#fff2,#fff5);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--brand)}
+    nav ul{list-style:none;margin:0;padding:0;display:flex;gap:12px}
+    nav a{color:rgba(255,255,255,0.95);text-decoration:none;padding:8px 10px;border-radius:8px}
+    nav a:hover, nav a:focus{background:rgba(255,255,255,0.06);outline:none}
+
+    .hero{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:28px 0}
+    .hero-card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 8px 20px rgba(15,23,42,0.06)}
+    .kafle{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+    .kafelek{background:linear-gradient(180deg,var(--glass),#fff);padding:14px;border-radius:10px;text-align:center}
+
+    main{padding:18px 0}
+    section{margin-bottom:18px}
+    h2{margin-top:0}
+
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .card{background:var(--card);padding:14px;border-radius:10px;box-shadow:0 6px 16px rgba(15,23,42,0.04)}
+
+    .news-list{display:flex;flex-direction:column;gap:10px}
+
+    /* Formularz kontaktowy i tabele prostsze */
+    form .row{display:flex;gap:8px}
+    label{font-weight:600;font-size:0.9rem}
+    input,select,textarea{padding:10px;border-radius:8px;border:1px solid #e6edf3;font-size:0.95rem;width:100%}
+    button{background:var(--brand);color:white;border:none;padding:10px 14px;border-radius:8px;cursor:pointer}
+    button.secondary{background:transparent;color:var(--brand);border:1px solid rgba(10,35,66,0.12)}
+
+    footer{padding:18px;background:#fff;border-top:1px solid #e6edf3}
+
+    /* Responsywność */
+    @media (max-width:900px){.hero{grid-template-columns:1fr} .kafle{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:600px){.grid-3{grid-template-columns:1fr} nav ul{display:none}}
+
+    /* Small helper classes */
+    .muted{color:var(--muted);font-size:0.95rem}
+    .small{font-size:0.9rem}
+    .chip{display:inline-block;padding:6px 8px;border-radius:999px;background:#f1f5f9;font-weight:600}
+
+    /* Accessibility focus styles */
+    a:focus,button:focus,input:focus,select:focus,textarea:focus{outline:3px solid rgba(0,112,166,0.14);outline-offset:2px}
+
+    /* Admin panel styles */
+    .admin {border-left:4px dashed rgba(10,35,66,0.06);padding-left:12px}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"><i class="fas fa-eagle"></i></div>
+        <div>
+          <div style="font-weight:700;font-size:1.05rem">Ministerstwo Finansów</div>
+          <div class="muted small">Rzeczowa strona prototypowa — demo</div>
+        </div>
+      </div>
+
+      <nav aria-label="Główne menu">
+        <ul>
+          <li><a href="#home">Strona główna</a></li>
+          <li><a href="#budzet">Budżet</a></li>
+          <li><a href="#podatki">Podatki</a></li>
+          <li><a href="#dokumenty">Dokumenty</a></li>
+          <li><a href="#e-uslugi">e-Usługi</a></li>
+          <li><a href="#kontakt">Kontakt</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" id="home">
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-card">
+        <h1>Ministerstwo Finansów</h1>
+        <p class="muted">Informacje, dokumenty i e‑usługi. Ten prototyp zawiera strukturę strony, przykładowe funkcje i instrukcje implementacyjne.</p>
+
+        <div class="kafle" aria-hidden="false">
+          <div class="kafelek"><strong>Budżet</strong><div class="small muted">Rok 2025 — podgląd</div></div>
+          <div class="kafelek"><strong>Podatki</strong><div class="small muted">Formularze i terminy</div></div>
+          <div class="kafelek"><strong>e-Usługi</strong><div class="small muted">Rozliczenia online</div></div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <a class="chip" href="#dokumenty">Przegląd dokumentów</a>
+          <a class="chip" href="#aktualnosci">Aktualności</a>
+        </div>
+
+        <hr style="margin:12px 0;border:none;border-top:1px solid #f1f5f9" />
+
+        <p class="small">Instrukcja szybkiej customizacji:
+          <ul>
+            <li>Zastąp tekst w HTML aktualnymi komunikatami (sekcja #aktualnosci).</li>
+            <li>Podłącz fetch('/api/news') w skrypcie zamiast localStorage do pobierania aktualnych wpisów.</li>
+            <li>Dla wykresów zamień mockdaneChart() na dane z rachunków budżetowych (format: [{label, value}]).</li>
+          </ul>
+        </p>
+      </div>
+
+      <aside class="hero-card" aria-label="Szybkie funkcje">
+        <h3>Panel szybki</h3>
+        <div class="small muted">Dostępne akcje (demo)</div>
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+          <button id="openBudget" aria-controls="budzet">Pokaż wykres budżetu</button>
+          <button id="openNews" class="secondary" aria-controls="aktualnosci">Przejdź do aktualności</button>
+          <button id="toggleAdmin">Przełącz panel admin</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- SEKCJA BUDŻET -->
+    <section id="budzet" class="card" aria-labelledby="budzetH">
+      <h2 id="budzetH">Budżet państwa — podgląd</h2>
+      <p class="muted small">Interaktywny wykres (mock). Zastąp dane demo danymi rzeczywistymi z API.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px;padding:8px;background:linear-gradient(180deg,var(--card),#fff);border-radius:8px">
+          <canvas id="budgetChart" width="400" height="250" aria-label="Wykres budżetu"></canvas>
+        </div>
+        <div style="width:320px">
+          <div class="card small">
+            <strong>Szybkie fakty</strong>
+            <ul>
+              <li>Deficyt planowany: <strong id="deficyt">–3.2%</strong></li>
+              <li>Dług publiczny: <strong id="dlug">48% PKB</strong></li>
+              <li>Dochody: <strong id="dochody">485 mld zł</strong></li>
+            </ul>
+            <div style="margin-top:8px">
+              <button id="downloadBudget">Pobierz raport (PDF)</button>
+              <button class="secondary" id="exportCsv">Eksportuj CSV</button>
+            </div>
+            <div style="margin-top:10px" class="muted small">Instrukcja: podmień /api/budget na własne endpointy w funkcji fetchBudget()</div>
+          </div>
+        </div>
+      </div>
+      <!-- Dalsze instrukcje dotyczące integracji back-end -->
+      <!-- Jeśli chcesz przenieść do CMS: wyeksportuj sekcję "news" i "documents" jako kolekcje. -->
+    </section>
+
+    <!-- SEKCJA PODATKI -->
+    <section id="podatki">
+      <h2>Podatki — informacje praktyczne</h2>
+      <div class="grid-3">
+        <div class="card">
+          <h3>PIT</h3>
+          <p class="muted small">Jak rozliczyć, terminy, najczęstsze błędy.</p>
+          <ol>
+            <li>Wypełnij e‑PIT lub pobierz formularz PDF.</li>
+            <li>Sprawdź odliczenia i ulgi (zdrowotna, internet, darowizny).</li>
+            <li>Wyślij przez ePUAP lub osobiście w urzędzie skarbowym.</li>
+          </ol>
+          <a href="#" class="small">Pobierz instrukcję PDF</a>
+        </div>
+
+        <div class="card">
+          <h3>VAT</h3>
+          <p class="muted small">Rejestracja, stawki i elektroniczne deklaracje VAT.</p>
+          <p class="small">Instrukcja: podłącz moduł autoryzacji (e‑ID) do endpointów rozliczeniowych.</p>
+        </div>
+
+        <div class="card">
+          <h3>Akcyza i cło</h3>
+          <p class="muted small">Informacje dla importerów i przedsiębiorców.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SEKCJA DOKUMENTY -->
+    <section id="dokumenty" class="card">
+      <h2>Dokumenty, prawo i raporty</h2>
+      <p class="muted small">Wszystkie akty prawne, projekty ustaw, raporty roczne i analizy.</p>
+      <div style="margin-top:10px">
+        <input id="docSearch" placeholder="Szukaj dokumentu (np. ustawa, budżet 2025)" aria-label="Szukaj dokumentu" />
+      </div>
+
+      <div style="margin-top:12px" id="documentList">
+        <!-- Przykładowe wpisy dokumentów. Zastąp danymi z repozytorium dokumentów. -->
+      </div>
+
+      <!-- Instrukcje implementacyjne: dokumenty powinny mieć metadane: {id, title, type, year, url, summary}. -->
+    </section>
+
+    <!-- SEKCJA E-USŁUGI -->
+    <section id="e-uslugi">
+      <h2>e‑Usługi</h2>
+      <p class="muted small">Bezpieczne usługi online: e‑PIT, wnioski, płatności i śledzenie statusu.</p>
+      <div class="grid-3">
+        <div class="card">
+          <h3>e‑PIT</h3>
+          <p class="small">Szybkie rozliczenie online. Wymagane uwierzytelnienie: Profil Zaufany lub e‑ID.</p>
+          <button class="secondary">Przejdź do e‑PIT (demo)</button>
+        </div>
+        <div class="card">
+          <h3>Płatności</h3>
+          <p class="small">Wpłaty podatków i opłat elektronicznych — API płatności powinno obsługiwać webhooki.</p>
+        </div>
+        <div class="card">
+          <h3>Wnioski</h3>
+          <p class="small">Złóż wniosek o zwrot podatku, interpretację podatkową, itp.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- AKTUALNOŚCI -->
+    <section id="aktualnosci" class="card">
+      <h2>Aktualności i komunikaty</h2>
+      <div class="news-list" id="newsList">
+        <!-- Wpisy będą renderowane przez JS -->
+      </div>
+
+      <div style="margin-top:10px" class="admin hidden" id="adminPanel">
+        <h3>Panel administracyjny (lokalny demo)</h3>
+        <p class="muted small">Dodawaj/edytuj wpisy. W produkcji: zabezpieczyć endpointy i dodać uwierzytelnianie.</p>
+        <form id="newsForm">
+          <div class="row">
+            <input id="newsTitle" placeholder="Tytuł" required />
+            <input id="newsDate" type="date" />
+          </div>
+          <textarea id="newsBody" rows="4" placeholder="Treść"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit">Dodaj/aktualizuj</button>
+            <button type="button" id="clearNews" class="secondary">Wyczyść demo</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- KONTAKT -->
+    <section id="kontakt" class="card">
+      <h2>Kontakt</h2>
+      <p class="muted small">Adres, telefony i formularz kontaktowy — przestrzegaj zasad RODO przy gromadzeniu danych.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px">
+          <address>
+            <strong>Ministerstwo Finansów</strong><br />ul. Przykładowa 1<br />00-000 Warszawa<br />Telefon: <a href="tel:+48123456789">+48 12 345 67 89</a>
+          </address>
+
+          <div style="margin-top:8px">
+            <p class="small">Godziny pracy: 08:00–16:00</p>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:280px">
+          <form id="contactForm" aria-label="Formularz kontaktowy">
+            <label for="name">Imię i nazwisko</label>
+            <input id="name" required />
+            <label for="email">Email</label>
+            <input id="email" type="email" required />
+            <label for="message">Wiadomość</label>
+            <textarea id="message" rows="4" required></textarea>
+            <div style="margin-top:8px">
+              <button type="submit">Wyślij wiadomość</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="container" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <div style="font-weight:700">Ministerstwo Finansów</div>
+        <div class="muted small">© "Rok" — przykładowa treść. Zastąp prawdziwą stopką prawną.</div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="#">BIP</a>
+        <a href="#">RODO</a>
+        <a href="#">Mapa serwisu</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- === SCRIPTS (demo funkcjonalności) === -->
+  <script>
+    /*
+      UWAGA:
+      - Zamień mock fetchy (localStorage) na rzeczywiste endpointy produkcyjne.
+      - Zabezpiecz /admin i endpointy tworzenia treści (OAuth2, JWT, CAS lub inny SSO rządowy).
+      - W produkcji: walidacja po stronie serwera + rate limiting + CSRF token.
+    */
+
+    // -- Mock dane początkowe dla aktualności i dokumentów
+    const seedNews = [
+      {id:1, title:'Nowy projekt budżetu 2026 udostępniony', date:'2025-10-15', body:'Projekt budżetu państwa na 2026 rok został opublikowany. Zapraszamy do konsultacji.'},
+      {id:2, title:'Zaplanowane zmiany w PIT od 2026', date:'2025-09-30', body:'Informacje o proponowanych zmianach podatkowych.'}
+    ];
+
+    const seedDocs = [
+      {id:1, title:'Ustawa o finansach publicznych (skrócona)', year:2024, type:'ustawa', url:'#', summary:'Skrócona wersja ustawy.'},
+      {id:2, title:'Raport roczny 2024', year:2025, type:'raport', url:'#', summary:'Kompletny raport finansowy.'}
+    ];
+
+    // -- Inicjalizacja localStorage demo
+    function initDemoData(){
+      if(!localStorage.getItem('mf_news')){
+        localStorage.setItem('mf_news', JSON.stringify(seedNews));
+      }
+      if(!localStorage.getItem('mf_docs')){
+        localStorage.setItem('mf_docs', JSON.stringify(seedDocs));
+      }
+    }
+    initDemoData();
+
+    // -- Render aktualności
+    function renderNews(){
+      const list = document.getElementById('newsList');
+      const raw = JSON.parse(localStorage.getItem('mf_news')||'[]');
+      list.innerHTML='';
+      raw.sort((a,b)=> new Date(b.date)-new Date(a.date));
+      raw.forEach(item=>{
+        const el = document.createElement('article');
+        el.className='card';
+        el.innerHTML = `<h3>${escapeHtml(item.title)}</h3><div class="muted small">${item.date}</div><p>${escapeHtml(item.body)}</p>`;
+        list.appendChild(el);
+      });
+    }
+    renderNews();
+
+    // -- Render dokumentów
+    function renderDocs(filter=''){
+      const cont = document.getElementById('documentList');
+      const raw = JSON.parse(localStorage.getItem('mf_docs')||'[]');
+      cont.innerHTML='';
+      const filtered = raw.filter(d=> (d.title+ ' ' +d.summary).toLowerCase().includes(filter.toLowerCase()));
+      filtered.forEach(d=>{
+        const el = document.createElement('div');
+        el.className='card';
+        el.innerHTML = `<strong>${escapeHtml(d.title)}</strong> <div class="muted small">${d.type} • ${d.year}</div><p class="small">${escapeHtml(d.summary)}</p><a href="${d.url}">Pobierz</a>`;
+        cont.appendChild(el);
+      });
+      if(filtered.length===0) cont.innerHTML='<div class="muted small">Brak dokumentów spełniających kryteria.</div>';
+    }
+    renderDocs();
+
+    document.getElementById('docSearch').addEventListener('input', e=> renderDocs(e.target.value));
+
+    // -- Obsługa formularza kontaktowego (demo)
+    document.getElementById('contactForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const message = document.getElementById('message').value.trim();
+      if(!name||!email||!message){alert('Uzupełnij wszystkie pola');return}
+      // TODO: w produkcji -> POST /api/contact z RODO, reCaptcha i walidacją.
+      alert('Dziękujemy — wiadomość została wysłana (demo).');
+      e.target.reset();
+    });
+
+    // -- Admin: dodawanie wpisów (localStorage demo)
+    document.getElementById('newsForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const title = document.getElementById('newsTitle').value.trim();
+      const date = document.getElementById('newsDate').value || new Date().toISOString().slice(0,10);
+      const body = document.getElementById('newsBody').value.trim();
+      if(!title||!body){alert('Tytuł i treść są wymagane');return}
+      const raw = JSON.parse(localStorage.getItem('mf_news')||'[]');
+      const id = raw.length?Math.max(...raw.map(r=>r.id))+1:1;
+      raw.push({id,title,date,body});
+      localStorage.setItem('mf_news', JSON.stringify(raw));
+      renderNews();
+      e.target.reset();
+    });
+    document.getElementById('clearNews').addEventListener('click', ()=>{if(confirm('Czy usunąć wszystkie demo wpisy?')){localStorage.removeItem('mf_news');initDemoData();renderNews();}});
+
+    // -- Panel admin: toggle
+    document.getElementById('toggleAdmin').addEventListener('click', ()=>{
+      const panel = document.getElementById('adminPanel');
+      panel.classList.toggle('hidden');
+    });
+
+    // -- Szybkie akcje hero
+    document.getElementById('openBudget').addEventListener('click', ()=> location.hash='#budzet');
+    document.getElementById('openNews').addEventListener('click', ()=> location.hash='#aktualnosci');
+
+    // -- Wykres budżetu (Chart.js) - przykładowe dane
+    function mockdaneChart(){
+      return {
+        labels:['Oświata','Zdrowie','Obrona','Transport','Administracja','Inne'],
+        datasets:[{label:'Wydatki (mld zł)', data:[78,120,60,40,30,157], fill:true, tension:0.3}]
+      }
+    }
+    const ctx = document.getElementById('budgetChart');
+    const budgetChart = new Chart(ctx,{
+      type:'bar',
+      data: mockdaneChart(),
+      options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+    });
+
+    // -- Pobierz/Broadcast raport (demo)
+    document.getElementById('downloadBudget').addEventListener('click', ()=>{
+      // demo: generujemy prosty plik txt. W produkcji -> wygenerowany PDF po stronie serwera.
+      const text = 'Raport budżetowy - demo\nData: '+new Date().toISOString();
+      const blob = new Blob([text], {type:'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='raport-budzet-demo.txt'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('exportCsv').addEventListener('click', ()=>{
+      const data = mockdaneChart();
+      let csv = 'kategoria;wartosc\n';
+      data.labels.forEach((l,i)=> csv += l+';'+data.datasets[0].data[i]+'\n');
+      const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download='budzet.csv'; a.click(); URL.revokeObjectURL(url);
+    });
+
+    // -- Proste zabezpieczenie XSS (do demo)
+    function escapeHtml(text){
+      const map = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#039;" };
+      return String(text).replace(/[&<>"']/g, m=>map[m]);
+    }
+
+    // -- Dynamiczne wczytywanie seed dokumentów do localStorage
+    function ensureDocs(){
+      if(!localStorage.getItem('mf_docs')){ localStorage.setItem('mf_docs', JSON.stringify(seedDocs)); }
+    }
+    ensureDocs();
+
+    // -- Przydatne: funkcja do importu/eksportu danych (demo)
+    window.exportAllData = function(){
+      const d = {
+        news: JSON.parse(localStorage.getItem('mf_news')||'[]'),
+        docs: JSON.parse(localStorage.getItem('mf_docs')||'[]')
+      };
+      const blob = new Blob([JSON.stringify(d, null, 2)], {type:'application/json'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='mf-export.json'; a.click();
+    }
+
+    // -- Wskazówka: jeśli przenosisz do backendu, zrób endpointy:
+    /*
+      GET /api/news
+      POST /api/news {title,body,date}
+      GET /api/documents?query=...
+      GET /api/budget
+      POST /api/contact {name,email,message}
+
+      Autoryzacja: OAuth2 / JWT / rządowy SSO
+      Bezpieczeństwo: TLS, CSP, rate limit, input sanitization
+    */
+
+    // -- Utility: ładowanie inicjalne
+    document.addEventListener('DOMContentLoaded', ()=>{
+      renderNews(); renderDocs();
+      // accessibility: focus na pierwszy nagłówek
+      document.querySelector('main h1')?.focus();
+    });
+
+    // -- Proste skróty klawiszowe do nawigacji (dostępność)
+    document.addEventListener('keydown', e=>{
+      if(e.altKey && e.key==='n') location.hash='#aktualnosci';
+      if(e.altKey && e.key==='b') location.hash='#budzet';
+    });
+
+  </script>
+</body>
+</html>
